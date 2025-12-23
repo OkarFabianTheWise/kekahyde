@@ -1,1 +1,6 @@
 /target
+# Model files
+*.gguf
+
+# Additional build artifacts
+/target/
