@@ -16,10 +16,9 @@ use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
-use crate::hybrid::{HybridExecutor, Prompt};
+use crate::hybrid::HybridExecutor;
 use crate::model::Model;
 use crate::monitor::{Monitor, StatusResponse};
-use llama_cpp_2::model::AddBos;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Policy {
@@ -277,30 +276,34 @@ async fn start_execution(
                 let use_hybrid = {
                     let hybrid = hybrid_clone.lock().await;
                     hybrid.should_use_hybrid(enforced_policy.allow_hybrid_compute)
+                        && !hybrid.peers.is_empty()
                 };
 
                 if use_hybrid {
-                    // Distributed execution
-                    let model = model_clone.lock().await;
-                    let model_inner = model.model.as_ref().unwrap();
-                    let tokens: Prompt = model_inner
-                        .str_to_token(&execution.prompt, AddBos::Always)
-                        .unwrap();
-                    drop(model);
+                    // Distributed execution: offload to peer
+                    let peer = {
+                        let hybrid = hybrid_clone.lock().await;
+                        hybrid.peers.first().cloned().unwrap() // Safe since we checked !is_empty
+                    };
 
                     let result = {
                         let hybrid = hybrid_clone.lock().await;
-                        let policy = Policy {
-                            allow_networking: false, // Enforced
-                            allow_hybrid_compute: true,
-                            allow_telemetry: false,
-                        };
-                        hybrid.execute_distributed(&tokens, &policy).await
+                        hybrid
+                            .run_distributed_inference(
+                                &*model_clone.lock().await,
+                                &execution.prompt,
+                                &peer,
+                            )
+                            .await
                     };
 
                     let result = match result {
-                        Ok(full_result) => Ok(full_result.result),
+                        Ok(output) => Ok(output),
                         Err(e) => {
+                            tracing::warn!(
+                                "Distributed execution failed, falling back to local: {}",
+                                e
+                            );
                             // Fallback to local on failure
                             let model = model_clone.lock().await;
                             let cancel_token = execution.cancel_token.as_ref().unwrap().clone();

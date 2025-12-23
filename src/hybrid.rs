@@ -1,46 +1,38 @@
-use crate::server::Policy;
-use llama_cpp_2::token::LlamaToken;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 // Define types for hybrid compute
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Chunk {
-    pub id: String,
-    pub data: Vec<f32>, // Numeric representation, e.g., token embeddings or layer outputs
-    pub metadata: HashMap<String, String>, // Additional info like layer index, etc.
+pub struct HiddenState {
+    pub data: Vec<u8>, // Serialized hidden state
+    pub hash: String,  // SHA256 of data
 }
 
 #[derive(Clone, Debug)]
 pub struct Peer {
     pub id: String,
-    pub address: String, // e.g., IP:port for encrypted channel
-                         // In real impl, would have encryption keys, etc.
+    pub address: String, // e.g., "127.0.0.1:8081"
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PartialResult {
-    pub chunk_id: String,
-    pub data: Vec<f32>,
-    pub hash: String, // SHA256 of data
+pub struct PeerResponse {
+    pub hidden_state: HiddenState,
 }
 
-#[derive(Clone, Debug)]
-pub struct FullResult {
-    pub result: String,
-    pub partials: Vec<PartialResult>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct InferenceResult {
+    pub output: String,
+    pub hash: String, // SHA256 of output
 }
 
-// Placeholder for Prompt, assuming it's the tokenized prompt
-pub type Prompt = Vec<LlamaToken>; // Token IDs
+// Tokenized prompt
+// pub type Tokens = Vec<llama_cpp_2::token::LlamaToken>;
 
 pub struct HybridExecutor {
     pub peers: Vec<Peer>,
-    // In real impl, connection pools, etc.
 }
 
 impl HybridExecutor {
@@ -49,11 +41,7 @@ impl HybridExecutor {
         // Add dummy peers for testing
         executor.add_peer(Peer {
             id: "peer1".to_string(),
-            address: "http://dummy1:8080".to_string(),
-        });
-        executor.add_peer(Peer {
-            id: "peer2".to_string(),
-            address: "http://dummy2:8080".to_string(),
+            address: "127.0.0.1:8081".to_string(),
         });
         executor
     }
@@ -67,138 +55,67 @@ impl HybridExecutor {
         allow_hybrid && !self.peers.is_empty()
     }
 
-    // Split prompt into chunks for remote execution
-    pub fn split_prompt_for_remote(&self, prompt: &Prompt) -> Vec<Chunk> {
-        // Simple split: divide tokens into chunks
-        let chunk_size = 10; // Example
-        let mut chunks = vec![];
-        for (i, chunk_tokens) in prompt.chunks(chunk_size).enumerate() {
-            let data = chunk_tokens.iter().map(|&t| t.0 as f32).collect(); // Placeholder numeric rep
-            let mut metadata = HashMap::new();
-            metadata.insert("index".to_string(), i.to_string());
-            chunks.push(Chunk {
-                id: format!("chunk_{}", i),
-                data,
-                metadata,
-            });
+    // Send prompt to peer and receive result
+    pub async fn send_prompt_to_peer(prompt: &str, peer: &Peer) -> Result<InferenceResult, String> {
+        let mut stream = TcpStream::connect(&peer.address)
+            .await
+            .map_err(|e| format!("Connect failed: {}", e))?;
+
+        // Send message: type 2 for prompt execution, length, prompt
+        let mut message = vec![2u8]; // type
+        let prompt_bytes = prompt.as_bytes();
+        message.extend(&(prompt_bytes.len() as u32).to_le_bytes());
+        message.extend(prompt_bytes);
+        stream
+            .write_all(&message)
+            .await
+            .map_err(|e| format!("Send failed: {}", e))?;
+
+        // Receive response: type 3, length, data (JSON with output and hash)
+        let mut type_buf = [0u8; 1];
+        stream
+            .read_exact(&mut type_buf)
+            .await
+            .map_err(|e| format!("Read type failed: {}", e))?;
+        if type_buf[0] != 3 {
+            return Err("Invalid response type".to_string());
         }
-        chunks
-    }
+        let mut len_buf = [0u8; 4];
+        stream
+            .read_exact(&mut len_buf)
+            .await
+            .map_err(|e| format!("Read length failed: {}", e))?;
+        let len = u32::from_le_bytes(len_buf) as usize;
+        let mut data = vec![0u8; len];
+        stream
+            .read_exact(&mut data)
+            .await
+            .map_err(|e| format!("Read data failed: {}", e))?;
 
-    // Send chunk to peer (placeholder, simulate encrypted channel)
-    pub async fn send_chunk_to_peer(chunk: &Chunk, _peer: &Peer) -> Result<PartialResult, String> {
-        // Simulate network delay
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        let result: InferenceResult =
+            serde_json::from_slice(&data).map_err(|e| format!("Deserialize failed: {}", e))?;
 
-        // Simulate processing: reverse the data or something
-        let processed_data = chunk.data.iter().rev().cloned().collect::<Vec<_>>();
-
-        // Compute hash
+        // Verify hash
         let mut hasher = Sha256::new();
-        for &val in &processed_data {
-            hasher.update(val.to_le_bytes());
-        }
-        let hash = format!("{:x}", hasher.finalize());
-
-        Ok(PartialResult {
-            chunk_id: chunk.id.clone(),
-            data: processed_data,
-            hash,
-        })
-    }
-
-    // Merge partial results into full result
-    pub fn merge_results(&self, partials: &[PartialResult]) -> FullResult {
-        // Sort partials by chunk_id (assuming ids are chunk_0, chunk_1, etc.)
-        let mut sorted_partials = partials.to_vec();
-        sorted_partials.sort_by_key(|p| {
-            p.chunk_id
-                .strip_prefix("chunk_")
-                .unwrap()
-                .parse::<usize>()
-                .unwrap()
-        });
-
-        // Concatenate data
-        let mut merged_data = Vec::new();
-        for partial in &sorted_partials {
-            merged_data.extend(&partial.data);
+        hasher.update(&result.output);
+        let computed_hash = format!("{:x}", hasher.finalize());
+        if computed_hash != result.hash {
+            return Err("Result hash mismatch".to_string());
         }
 
-        // For result, convert to string (placeholder)
-        let result = merged_data
-            .iter()
-            .map(|f: &f32| f.to_string())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        FullResult {
-            result,
-            partials: sorted_partials,
-        }
+        Ok(result)
     }
 
-    // Verify result
-    pub fn verify_result(&self, result: &FullResult) -> bool {
-        // Check that all partials have correct hashes
-        result.partials.iter().all(|p| {
-            let mut hasher = Sha256::new();
-            for &val in &p.data {
-                hasher.update(val.to_le_bytes());
-            }
-            let computed_hash = format!("{:x}", hasher.finalize());
-            computed_hash == p.hash
-        })
-    }
-
-    // Execute distributed prompt
-    pub async fn execute_distributed(
+    // Run distributed inference by offloading to a peer
+    pub async fn run_distributed_inference(
         &self,
-        prompt: &Prompt,
-        policy: &Policy,
-    ) -> Result<FullResult, String> {
-        if !policy.allow_hybrid_compute || self.peers.is_empty() {
-            return Err("Hybrid compute not allowed or no peers available".to_string());
-        }
-
-        let chunks = self.split_prompt_for_remote(prompt);
-        let mut partials = Vec::new();
-        let mut tasks = Vec::new();
-
-        // Assign chunks to peers (simple round-robin)
-        for (i, chunk) in chunks.into_iter().enumerate() {
-            let peer = &self.peers[i % self.peers.len()];
-            let chunk_clone = chunk.clone();
-            let peer_clone = peer.clone();
-            let task =
-                tokio::spawn(
-                    async move { Self::send_chunk_to_peer(&chunk_clone, &peer_clone).await },
-                );
-            tasks.push(task);
-        }
-
-        // Wait for all tasks, with timeout
-        let timeout_duration = std::time::Duration::from_secs(30);
-        let mut results = Vec::new();
-        for task in tasks {
-            let res = tokio::time::timeout(timeout_duration, task).await;
-            results.push(res);
-        }
-
-        for result in results {
-            match result {
-                Ok(Ok(Ok(partial))) => partials.push(partial),
-                Ok(Ok(Err(e))) => return Err(format!("Chunk execution failed: {}", e)),
-                Ok(Err(e)) => return Err(format!("Task panicked: {:?}", e)),
-                Err(_) => return Err("Chunk execution timed out".to_string()),
-            }
-        }
-
-        let full_result = self.merge_results(&partials);
-        if self.verify_result(&full_result) {
-            Ok(full_result)
-        } else {
-            Err("Result verification failed".to_string())
-        }
+        _model: &crate::model::Model,
+        prompt: &str,
+        peer: &Peer,
+    ) -> Result<String, String> {
+        // Send the full prompt to peer for remote execution
+        let result = Self::send_prompt_to_peer(prompt, peer).await?;
+        // Result is already verified
+        Ok(result.output)
     }
 }
