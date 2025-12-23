@@ -4,3 +4,5 @@
 
 # Additional build artifacts
 /target/
+/models/
+/models/*.gguf
