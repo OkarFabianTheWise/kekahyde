@@ -204,7 +204,6 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/execution/cancel/:id", post(cancel_execution))
         .route("/execution/status/:id", get(execution_status))
         .route("/ws/execution/:id", get(execution_ws))
-        .fallback_service(ServeDir::new("frontend/out"))
         .layer(cors)
         .with_state(state)
 }

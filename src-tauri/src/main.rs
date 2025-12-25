@@ -4,17 +4,17 @@ mod monitor;
 mod server;
 
 use axum::serve;
+use futures::TryStreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::Client;
 use std::env;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
-use std::path::Path;
-use std::fs::File;
-use std::io::Write;
-use reqwest::Client;
-use indicatif::{ProgressBar, ProgressStyle};
 use tokio_util::io::StreamReader;
-use futures::TryStreamExt;
 
 use hybrid::HybridExecutor;
 use model::Model;
@@ -86,16 +86,20 @@ async fn run_server() {
     let mut model = Model::new().expect("Failed to create model");
 
     // Load model at startup
-    let model_path = env::var("MODEL_PATH")
-        .unwrap_or_else(|_| {
-            let home = env::var("HOME").expect("HOME not set");
-            format!("{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf", home)
-        });
+    let model_path = env::var("MODEL_PATH").unwrap_or_else(|_| {
+        let home = env::var("HOME").expect("HOME not set");
+        format!(
+            "{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+            home
+        )
+    });
     println!("Model path: {}", model_path);
     let model_path_path = Path::new(&model_path);
     if !model_path_path.exists() {
         let url = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
-        download_model(url, model_path_path).await.expect("Failed to download model");
+        download_model(url, model_path_path)
+            .await
+            .expect("Failed to download model");
     }
     println!("Loading model from: {}", model_path);
     model
@@ -113,9 +117,15 @@ async fn run_server() {
 
     let app = create_router(app_state);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await;
+    if let Err(e) = &listener {
+        eprintln!(
+            "Failed to bind to port 3000: {}. Please ensure no other process is using port 3000.",
+            e
+        );
+        std::process::exit(1);
+    }
+    let listener = listener.unwrap();
     println!("Daemon running on http://127.0.0.1:3000");
 
     axum::serve(listener, app).await.unwrap();
@@ -125,15 +135,19 @@ async fn run_as_peer() {
     println!("Running as peer server on 127.0.0.1:8081");
 
     let mut model = Model::new().expect("Failed to create model");
-    let model_path = env::var("MODEL_PATH")
-        .unwrap_or_else(|_| {
-            let home = env::var("HOME").expect("HOME not set");
-            format!("{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf", home)
-        });
+    let model_path = env::var("MODEL_PATH").unwrap_or_else(|_| {
+        let home = env::var("HOME").expect("HOME not set");
+        format!(
+            "{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+            home
+        )
+    });
     let model_path_path = Path::new(&model_path);
     if !model_path_path.exists() {
         let url = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
-        download_model(url, model_path_path).await.expect("Failed to download model");
+        download_model(url, model_path_path)
+            .await
+            .expect("Failed to download model");
     }
     println!("Peer loading model from: {}", model_path);
     model

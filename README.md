@@ -23,10 +23,12 @@ Download the latest release from [GitHub Releases](https://github.com/OkarFabian
 3. Launch from Applications (you may need to allow it in Security settings).
 
 ### Installing on Linux
-1. Download `kekahyde_0.1.0_amd64.deb` (Debian/Ubuntu) or `Kekahyde.AppImage` (universal).
+1. Download `Kekahyde_0.1.0_amd64.deb` (Debian/Ubuntu) or `Kekahyde.AppImage` (universal).
 2. For `.deb`: `sudo dpkg -i Kekahyde_0.1.0_amd64.deb`
 3. For `.AppImage`: `chmod +x Kekahyde.AppImage && ./Kekahyde.AppImage`
 4. Launch Kekahyde from your app menu.
+
+**Note:** Requires a graphical desktop environment (e.g., GNOME, KDE). WSL users should use the Windows installer for GUI support, as WSL GUI setup is complex and not recommended for end-users.
 
 ### First Run
 - On first launch, the app will check for the model file.
