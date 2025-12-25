@@ -1,0 +1,68 @@
+name: Build Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # triggers on version tags like v0.1.0
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Build Rust binary
+        run: cd rust && cargo build --release
+
+      - name: Copy Rust binary
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cp rust/target/release/kekahyde.exe frontend/runtime/ai-runtime.exe
+          else
+            cp rust/target/release/kekahyde frontend/runtime/ai-runtime
+          fi
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Build frontend
+        run: cd frontend && pnpm run build-ui
+
+      - name: Build Electron app
+        run: cd frontend && pnpm run build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kekahyde-${{ matrix.os }}
+          path: frontend/dist/
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

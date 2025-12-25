@@ -13,6 +13,7 @@ node_modules/
 /frontend/out/
 /frontend/.next/
 /frontend/.vercel
+/frontend/dist/
 
 # Additional build artifacts
 /target/
