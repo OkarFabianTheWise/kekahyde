@@ -28,11 +28,16 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libxss1 libasound2-dev
+
       - name: Build Rust binary
         run: cd rust && cargo build --release
 
       - name: Copy Rust binary
         run: |
+          mkdir -p frontend/runtime
           if [ "$RUNNER_OS" == "Windows" ]; then
             cp rust/target/release/kekahyde.exe frontend/runtime/ai-runtime.exe
           else
