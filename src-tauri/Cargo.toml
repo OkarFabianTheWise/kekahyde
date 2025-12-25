@@ -18,8 +18,10 @@ llama-cpp-2 = "0.1.130"
 num_cpus = "1.17"
 tracing = "0.1.44"
 tracing-subscriber = "0.3"
+reqwest = { version = "0.12", features = ["stream"] }
+indicatif = "0.17"
+tokio-util = { version = "0.7", features = ["io"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4"] }
-tokio-util = "0.7"
 sha2 = "0.10"
 tauri = { version = "2", features = [] }

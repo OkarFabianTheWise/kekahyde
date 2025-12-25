@@ -4,7 +4,7 @@ A decentralized, local-first AI runtime with P2P distributed computing. Runs LLM
 
 ## Installation
 
-Download the latest release from [GitHub Releases](https://github.com/your-repo/kekahyde/releases).
+Download the latest release from [GitHub Releases](https://github.com/OkarFabianTheWise/kekahyde/releases).
 
 ### System Requirements
 - **OS**: Windows 10+, macOS 10.15+, or Linux (Ubuntu 18.04+)
@@ -24,13 +24,18 @@ Download the latest release from [GitHub Releases](https://github.com/your-repo/
 
 ### Installing on Linux
 1. Download `kekahyde_0.1.0_amd64.deb` (Debian/Ubuntu) or `Kekahyde.AppImage` (universal).
-2. For `.deb`: `sudo dpkg -i kekahyde_0.1.0_amd64.deb`
+2. For `.deb`: `sudo dpkg -i Kekahyde_0.1.0_amd64.deb`
 3. For `.AppImage`: `chmod +x Kekahyde.AppImage && ./Kekahyde.AppImage`
 4. Launch Kekahyde from your app menu.
 
 ### First Run
-- On first launch, the app will download or load included models.
-- If models are missing, place GGUF files in the app's data directory (check settings).
+- On first launch, the app will check for the model file.
+- If missing, download it manually:
+  ```bash
+  mkdir -p ~/.local/share/com.kekahyde.dev/models
+  wget https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf -O ~/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+  ```
+- Then relaunch the app.
 
 ## Features
 

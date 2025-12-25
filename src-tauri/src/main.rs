@@ -8,11 +8,54 @@ use std::env;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
+use std::path::Path;
+use std::fs::File;
+use std::io::Write;
+use reqwest::Client;
+use indicatif::{ProgressBar, ProgressStyle};
+use tokio_util::io::StreamReader;
+use futures::TryStreamExt;
 
 use hybrid::HybridExecutor;
 use model::Model;
 use monitor::Monitor;
 use server::{AppState, ExecutionManager, create_router};
+
+async fn download_model(url: &str, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    if path.exists() {
+        println!("Model already exists at {:?}", path);
+        return Ok(());
+    }
+
+    // Create directory if it doesn't exist
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    println!("Downloading model from {}...", url);
+    let client = Client::new();
+    let response = client.get(url).send().await?;
+    let total_size = response.content_length().unwrap_or(0);
+
+    let pb = ProgressBar::new(total_size);
+    pb.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+        .unwrap()
+        .progress_chars("#>-"));
+
+    let mut file = File::create(path)?;
+    let mut stream = response.bytes_stream();
+    let mut downloaded: u64 = 0;
+
+    while let Some(chunk) = stream.try_next().await? {
+        file.write_all(&chunk)?;
+        downloaded += chunk.len() as u64;
+        pb.set_position(downloaded);
+    }
+
+    pb.finish_with_message("Download complete");
+    Ok(())
+}
 
 #[cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
@@ -44,7 +87,16 @@ async fn run_server() {
 
     // Load model at startup
     let model_path = env::var("MODEL_PATH")
-        .unwrap_or_else(|_| "./models/models/qwen2.5-0.5b-instruct-q4_k_m.gguf".to_string());
+        .unwrap_or_else(|_| {
+            let home = env::var("HOME").expect("HOME not set");
+            format!("{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf", home)
+        });
+    println!("Model path: {}", model_path);
+    let model_path_path = Path::new(&model_path);
+    if !model_path_path.exists() {
+        let url = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
+        download_model(url, model_path_path).await.expect("Failed to download model");
+    }
     println!("Loading model from: {}", model_path);
     model
         .load_model(&model_path)
@@ -74,7 +126,15 @@ async fn run_as_peer() {
 
     let mut model = Model::new().expect("Failed to create model");
     let model_path = env::var("MODEL_PATH")
-        .unwrap_or_else(|_| "./models/models/qwen2.5-0.5b-instruct-q4_k_m.gguf".to_string());
+        .unwrap_or_else(|_| {
+            let home = env::var("HOME").expect("HOME not set");
+            format!("{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf", home)
+        });
+    let model_path_path = Path::new(&model_path);
+    if !model_path_path.exists() {
+        let url = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
+        download_model(url, model_path_path).await.expect("Failed to download model");
+    }
     println!("Peer loading model from: {}", model_path);
     model
         .load_model(&model_path)
