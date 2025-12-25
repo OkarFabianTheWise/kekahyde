@@ -37,6 +37,7 @@ jobs:
         run: cd rust && cargo build --release
 
       - name: Copy Rust binary
+        shell: bash
         run: |
           mkdir -p frontend/runtime
           if [ "$RUNNER_OS" == "Windows" ]; then
@@ -79,6 +80,7 @@ jobs:
           path: ./artifacts
 
       - name: Upload Release Assets
+        shell: bash
         run: |
           for dir in ./artifacts/*/; do
             gh release upload ${{ github.ref_name }} "$dir"*
