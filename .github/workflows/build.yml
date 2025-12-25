@@ -61,17 +61,27 @@ jobs:
           name: Kekahyde-${{ matrix.os }}
           path: frontend/dist/
 
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
         with:
-          files: frontend/dist/*
+          path: ./artifacts
+
+      - name: Upload Release Assets
+        run: |
+          for dir in ./artifacts/*/; do
+            gh release upload ${{ github.ref_name }} "$dir"*
+          done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
