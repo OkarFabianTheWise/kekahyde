@@ -71,7 +71,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -85,4 +85,4 @@ jobs:
             gh release upload ${{ github.ref_name }} "$dir"*
           done
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
