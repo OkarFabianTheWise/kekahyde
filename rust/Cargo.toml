@@ -3,9 +3,6 @@ name = "kekahyde"
 version = "0.1.0"
 edition = "2024"
 
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
-
 [dependencies]
 tokio = { version = "1.0", features = ["full"] }
 axum = { version = "0.7", features = ["ws"] }
@@ -24,4 +21,3 @@ tokio-util = { version = "0.7", features = ["io"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4"] }
 sha2 = "0.10"
-tauri = { version = "2", features = [] }

@@ -58,6 +58,7 @@ Download the latest release from [GitHub Releases](https://github.com/OkarFabian
 - **P2P Coordinator**: Manages peer connections and distributed execution
 - **WebSocket Streaming**: Real-time updates for frontend
 - **Frontend**: Next.js app with React components
+- **Desktop App**: Electron application that supervises the Rust runtime
 - **State Management**: Shared async state for models, executions, and monitoring
 
 ## Quick Start
@@ -73,33 +74,21 @@ Download the latest release from [GitHub Releases](https://github.com/OkarFabian
    ```bash
    git clone <repo>
    cd kekahyde
-   cargo build --release
+   cd rust && cargo build --release
+   cd ../frontend && pnpm install
    ```
 
 2. **Set model path:**
    ```bash
-   export MODEL_PATH=./models/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+   export MODEL_PATH=./rust/models/models/qwen2.5-0.5b-instruct-q4_k_m.gguf
    ```
 
-3. **Run the server:**
-   ```bash
-   ./target/release/kekahyde
-   ```
-   Server starts on `http://127.0.0.1:3000`
-
-4. **(Optional) Run a peer for P2P:**
-   ```bash
-   ./target/release/kekahyde peer
-   ```
-   Peer listens on `127.0.0.1:8081`
-
-5. **Start the frontend:**
+3. **Run the Electron app:**
    ```bash
    cd frontend
-   pnpm install
-   pnpm run dev
+   pnpm run electron-dev
    ```
-   Frontend available at `http://localhost:3000`
+   The app will start the Rust runtime and open the frontend in an Electron window.
 
 ## API Endpoints
 

@@ -57,21 +57,9 @@ async fn download_model(url: &str, path: &Path) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-#[cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
-)]
-
-fn main() {
-    tauri::Builder::default()
-        .setup(|app| {
-            tauri::async_runtime::spawn(async move {
-                run_server().await;
-            });
-            Ok(())
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+#[tokio::main]
+async fn main() {
+    run_server().await;
 }
 
 async fn run_server() {
