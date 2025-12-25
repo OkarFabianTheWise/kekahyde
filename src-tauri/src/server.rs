@@ -13,7 +13,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, broadcast};
 use tokio_util::sync::CancellationToken;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+};
 use uuid::Uuid;
 
 use crate::hybrid::HybridExecutor;
@@ -201,6 +204,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/execution/cancel/:id", post(cancel_execution))
         .route("/execution/status/:id", get(execution_status))
         .route("/ws/execution/:id", get(execution_ws))
+        .fallback_service(ServeDir::new("frontend/out"))
         .layer(cors)
         .with_state(state)
 }

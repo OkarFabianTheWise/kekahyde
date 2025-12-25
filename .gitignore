@@ -1,9 +1,44 @@
 /target
-# Model files
+# Rust build artifacts
+target/
+src-tauri/target/
+
+# Model files (large GGUF files)
+/models/
+/models/*.gguf
 *.gguf
+
+# Node.js dependencies and build artifacts
+node_modules/
+/frontend/out/
+/frontend/.next/
+/frontend/.vercel
 
 # Additional build artifacts
 /target/
-/models/
-/models/*.gguf
-/frontend/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

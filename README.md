@@ -2,6 +2,36 @@
 
 A decentralized, local-first AI runtime with P2P distributed computing. Runs LLMs locally with optional peer-to-peer inference offloading for enhanced performance and scalability. Includes a web frontend for easy interaction.
 
+## Installation
+
+Download the latest release from [GitHub Releases](https://github.com/your-repo/kekahyde/releases).
+
+### System Requirements
+- **OS**: Windows 10+, macOS 10.15+, or Linux (Ubuntu 18.04+)
+- **RAM**: 4GB minimum (8GB+ recommended for larger models)
+- **Storage**: 2GB free space (plus model files)
+- **Dependencies**: None (bundled in installer)
+
+### Installing on Windows
+1. Download `Kekahyde_0.1.0_x64.msi` or `Kekahyde_0.1.0_x64.exe`.
+2. Run the installer and follow the prompts.
+3. Launch Kekahyde from the Start menu.
+
+### Installing on macOS
+1. Download `Kekahyde_0.1.0_x64.dmg`.
+2. Open the DMG and drag Kekahyde to Applications.
+3. Launch from Applications (you may need to allow it in Security settings).
+
+### Installing on Linux
+1. Download `kekahyde_0.1.0_amd64.deb` (Debian/Ubuntu) or `Kekahyde.AppImage` (universal).
+2. For `.deb`: `sudo dpkg -i kekahyde_0.1.0_amd64.deb`
+3. For `.AppImage`: `chmod +x Kekahyde.AppImage && ./Kekahyde.AppImage`
+4. Launch Kekahyde from your app menu.
+
+### First Run
+- On first launch, the app will download or load included models.
+- If models are missing, place GGUF files in the app's data directory (check settings).
+
 ## Features
 
 - **Local-first AI**: No internet required, runs entirely offline

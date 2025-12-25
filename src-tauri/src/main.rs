@@ -14,8 +14,24 @@ use model::Model;
 use monitor::Monitor;
 use server::{AppState, ExecutionManager, create_router};
 
-#[tokio::main]
-async fn main() {
+#[cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
+fn main() {
+    tauri::Builder::default()
+        .setup(|app| {
+            tauri::async_runtime::spawn(async move {
+                run_server().await;
+            });
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+async fn run_server() {
     tracing_subscriber::fmt().init();
 
     let args: Vec<String> = env::args().collect();
@@ -45,10 +61,12 @@ async fn main() {
 
     let app = create_router(app_state);
 
-    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+        .await
+        .unwrap();
     println!("Daemon running on http://127.0.0.1:3000");
 
-    serve(listener, app).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn run_as_peer() {

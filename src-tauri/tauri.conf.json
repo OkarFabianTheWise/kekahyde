@@ -1,0 +1,39 @@
+{
+    "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+    "productName": "Kekahyde",
+    "version": "0.1.0",
+    "identifier": "com.kekahyde.dev",
+    "build": {
+        "beforeBuildCommand": "",
+        "beforeDevCommand": "",
+        "frontendDist": "../frontend/out"
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "icon": [
+            "icons/icon.svg"
+        ],
+        "category": "DeveloperTool",
+        "copyright": "",
+        "shortDescription": "",
+        "windows": {
+            "certificateThumbprint": null,
+            "digestAlgorithm": "sha256",
+            "timestampUrl": ""
+        },
+        "macOS": {
+            "entitlements": null,
+            "exceptionDomain": "",
+            "frameworks": [],
+            "providerShortName": null,
+            "signingIdentity": null
+        },
+        "linux": {
+            "deb": {
+                "depends": []
+            }
+        }
+    },
+    "plugins": {}
+}
