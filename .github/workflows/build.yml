@@ -42,6 +42,7 @@ jobs:
             cp rust/target/release/kekahyde.exe frontend/runtime/ai-runtime.exe
           else
             cp rust/target/release/kekahyde frontend/runtime/ai-runtime
+            chmod +x frontend/runtime/ai-runtime
           fi
 
       - name: Install dependencies
