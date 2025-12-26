@@ -88,15 +88,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p upload_dir
           for dir in ./artifacts/*/; do
-            echo "Uploading files from $dir"
-            find "$dir" -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file; do
-              asset_name="$(basename "$dir")-$(basename "$file")"
-              echo " - $file as $asset_name"
-              curl -X POST \
-                -H "Authorization: token ${{ secrets.RELEASE_TOKEN }}" \
-                -H "Content-Type: application/octet-stream" \
-                --data-binary @"$file" \
-                "${{ steps.create_release.outputs.upload_url }}?name=$asset_name"
+            for file in "$dir"*; do
+              if [ -f "$file" ]; then
+                asset_name="$(basename "$dir")-$(basename "$file")"
+                cp "$file" "upload_dir/$asset_name"
+              fi
             done
           done
+          gh release upload ${{ github.ref_name }} upload_dir/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
