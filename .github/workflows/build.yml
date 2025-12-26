@@ -66,6 +66,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -86,3 +91,4 @@ jobs:
           done
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
