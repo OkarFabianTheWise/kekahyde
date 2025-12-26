@@ -90,8 +90,9 @@ jobs:
           for dir in ./artifacts/*/; do
             echo "Uploading files from $dir"
             find "$dir" -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file; do
-              echo " - $file"
-              gh release upload ${{ github.ref_name }} "$file"
+              asset_name="$(basename "$dir")-$(basename "$file")"
+              echo " - $file as $asset_name"
+              gh release upload ${{ github.ref_name }} "$file" --name "$asset_name"
             done
           done
         env:
