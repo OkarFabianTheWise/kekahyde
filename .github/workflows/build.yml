@@ -72,6 +72,7 @@ jobs:
           fetch-depth: 0
           submodules: true
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -92,9 +93,10 @@ jobs:
             find "$dir" -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file; do
               asset_name="$(basename "$dir")-$(basename "$file")"
               echo " - $file as $asset_name"
-              gh release upload ${{ github.ref_name }} "$file" --name "$asset_name"
+              curl -X POST \
+                -H "Authorization: token ${{ secrets.RELEASE_TOKEN }}" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary @"$file" \
+                "${{ steps.create_release.outputs.upload_url }}?name=$asset_name"
             done
           done
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
