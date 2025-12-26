@@ -86,8 +86,13 @@ jobs:
       - name: Upload Release Assets
         shell: bash
         run: |
+          set -euo pipefail
           for dir in ./artifacts/*/; do
-            gh release upload ${{ github.ref_name }} "$dir"*
+            echo "Uploading files from $dir"
+            find "$dir" -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file; do
+              echo " - $file"
+              gh release upload ${{ github.ref_name }} "$file"
+            done
           done
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
