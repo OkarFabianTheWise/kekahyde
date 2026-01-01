@@ -69,6 +69,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+
           fetch-depth: 0
           submodules: true
       - name: Create Release
@@ -77,6 +78,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
+          overwrite: true
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Download Artifacts
@@ -97,7 +99,7 @@ jobs:
               fi
             done
           done
-          gh release upload ${{ github.ref_name }} upload_dir/*
+          gh release upload ${{ github.ref_name }} upload_dir/* --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
