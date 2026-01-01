@@ -60,7 +60,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Kekahyde-${{ matrix.os }}
-          path: frontend/dist/Kekahyde*
+          path: |
+            frontend/dist/*.exe
+            frontend/dist/*.dmg
+            frontend/dist/*.AppImage
 
   release:
     needs: build
@@ -90,16 +93,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p upload_dir
-          for dir in ./artifacts/*/; do
-            for file in "$dir"*; do
-              if [ -f "$file" ] && [[ "$file" =~ \.(exe|dmg|AppImage)$ ]]; then
-                asset_name="$(basename "$dir")-$(basename "$file")"
-                cp "$file" "upload_dir/$asset_name"
-              fi
-            done
-          done
-          gh release upload ${{ github.ref_name }} upload_dir/* --clobber
+          gh release upload ${{ github.ref_name }} ./artifacts/*/* --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
