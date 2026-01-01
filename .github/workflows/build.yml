@@ -93,7 +93,7 @@ jobs:
           mkdir -p upload_dir
           for dir in ./artifacts/*/; do
             for file in "$dir"*; do
-              if [ -f "$file" ]; then
+              if [ -f "$file" ] && [[ "$file" =~ \.(exe|dmg|AppImage)$ ]]; then
                 asset_name="$(basename "$dir")-$(basename "$file")"
                 cp "$file" "upload_dir/$asset_name"
               fi
