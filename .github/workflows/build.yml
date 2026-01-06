@@ -61,9 +61,9 @@ jobs:
         with:
           name: Kekahyde-${{ matrix.os }}
           path: |
-            frontend/dist/*.exe
-            frontend/dist/*.dmg
-            frontend/dist/*.AppImage
+            frontend/dist/Kekahyde*.exe
+            frontend/dist/Kekahyde*.dmg
+            frontend/dist/Kekahyde*.AppImage
 
   release:
     needs: build
