@@ -72,16 +72,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-
           fetch-depth: 0
           submodules: true
+      - name: Delete existing release
+        run: gh release delete ${{ github.ref_name }} || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-          overwrite: true
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Download Artifacts
