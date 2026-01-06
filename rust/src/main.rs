@@ -75,7 +75,9 @@ async fn run_server() {
 
     // Load model at startup
     let model_path = env::var("MODEL_PATH").unwrap_or_else(|_| {
-        let home = env::var("HOME").expect("HOME not set");
+        let home = env::var("HOME")
+            .or_else(|_| env::var("USERPROFILE"))
+            .expect("HOME or USERPROFILE not set");
         format!(
             "{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
             home
@@ -124,7 +126,9 @@ async fn run_as_peer() {
 
     let mut model = Model::new().expect("Failed to create model");
     let model_path = env::var("MODEL_PATH").unwrap_or_else(|_| {
-        let home = env::var("HOME").expect("HOME not set");
+        let home = env::var("HOME")
+            .or_else(|_| env::var("USERPROFILE"))
+            .expect("HOME or USERPROFILE not set");
         format!(
             "{}/.local/share/com.kekahyde.dev/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
             home
